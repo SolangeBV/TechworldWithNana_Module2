@@ -1,4 +1,4 @@
-# EXERCISE 7: Bash Script - Start Node App Check Status
+# EXERCISE 7, 8, 9: Bash Script - Start Node App Check Status, Log Directory, Service User
 
 - __vim start_node_app.sh__: create file and open it in Vim editor
 - Press _i_ to edit the file
