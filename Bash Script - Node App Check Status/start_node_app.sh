@@ -28,7 +28,20 @@ tar -xf bootcamp-node-envvars-project-1.0.0.tgz || display_error "Failed to unzi
 export APP_ENV=dev
 export DB_USER=myuser
 export DB_PWD=mysecret
-export LOG_DIR="~/package"
+
+# Check if log directory parameter is provided
+if [ -n "$1" ]; then
+    log_directory="$1"
+    # Check if the provided directory exists
+    if [ -d "$log_directory" ]; then
+        echo "Using existing log directory: $log_directory"
+    # Create the directory if it doesn't exist
+    else
+        mkdir -p "$log_directory" || display_error "Failed to create log directory"
+        echo "Created log directory: $log_directory"
+    fi
+    export LOG_DIR="$(realpath "$log_directory")"
+fi
 
 # Check if required environment variables are set
 if [-z "$APP_ENV"] || [-z "$DB_USER" ] || [ -z "$DB_PWD" ]; then
@@ -49,7 +62,7 @@ sleep 10
 node_pid=$(pgrep -f "node server.js")
 if [ -n "$node_pid" ]; then
   echo "NodeJS application started successfully! (PID: $node_pid)"
-  server_port=$(pgrep -oP "Listening on port \K\d+" ~/package/app.log)
+  server_port=$(pgrep -oP "Listening on port \K\d+" $LOG_DIR/app.log)
   echo "Application is listening on port: $server_port"
 else
   display_error "Failed to start NodeJS application."
