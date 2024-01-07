@@ -6,3 +6,4 @@
 - Press _esc_, then type _:wq_ to exit the Vim editor and save the changes
 - __chmod +x start_node_app.sh__: to make the script executable
 - __./start_node_app.sh__: to run the script
+- __NB__: note that the ampersand _&_ is used to run a command in the background, allowing it to execute indipendently of the current terminal session
