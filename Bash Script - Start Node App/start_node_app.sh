@@ -30,7 +30,7 @@ export DB_USER=myuser
 export DB_PWD=mysecret
 
 # Change into the unzipped package directory
-cd bootcamp-node-envvars-project-1.0.0 || display_error "Failed to change directory"
+cd package || display_error "Failed to change directory"
 
 # Run NodeJS application
 echo "Running NodeJS application in background..."
