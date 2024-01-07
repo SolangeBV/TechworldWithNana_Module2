@@ -14,7 +14,7 @@ fi
 NEW_USER=myapp
 
 # Create a new user 'myapp'
-useradd $NEW_USER -m || display_error "Failed to create user myapp"
+useradd $NEW_USER -m || display_error "Failed to create user $NEW_USER"
 
 # Check if log directory parameter is provided
 if [ -n "$1" ]; then
@@ -31,7 +31,7 @@ if [ -n "$1" ]; then
 fi
 
 # Change ownership of application directory to myapp user
-chown $NEW_USER -R $LOG_DIR
+chown $NEW_USER:$NEW_USER -R "$LOG_DIR"
 
 # Install Node.js and NPM and print out versions
 echo "Installing Node.js and NPM..."
@@ -45,17 +45,17 @@ echo "NPM version installed: $npm_version"
 # Download artifact file
 echo "Downloading artifact file..."
 artifact_url="https://node-envvars-artifact.s3.eu-west-2.amazonaws.com/bootcamp-node-envvars-project-1.0.0.tgz"
-runuser -l $NEW_USER -c "wget -q \"$artifact_url\" || display_error \"Failed to download artifact file\""
+runuser -l $NEW_USER -c "wget -q \"$artifact_url\"" || display_error "Failed to download artifact file"
 
 # Unzip downloaded file
 echo "Unzipping downloaded file..."
-runuser -l $NEW_USER -c "tar -xf bootcamp-node-envvars-project-1.0.0.tgz || display_error \"Failed to unzip downloaded file\""
+runuser -l $NEW_USER -c "tar -xf bootcamp-node-envvars-project-1.0.0.tgz" || display_error "Failed to unzip downloaded file"
 
-# Set environment variables
-runuser -l $NEW_USER -c "export APP_ENV=dev &&
-export DB_USER=myuser &&
-export DB_PWD=mysecret &&
-export LOG_DIR=$LOG_DIR"
+# Set or update environment variables
+runuser -l $NEW_USER -c 'grep -qxF "export APP_ENV=dev" ~/.bashrc && sed -i "s/export APP_ENV=.*/export APP_ENV=dev/" ~/.bashrc || echo "export APP_ENV=dev" >> ~/.bashrc'
+runuser -l $NEW_USER -c 'grep -qxF "export DB_USER=myuser" ~/.bashrc && sed -i "s/export DB_USER=.*/export DB_USER=myuser/" ~/.bashrc || echo "export DB_USER=myuser" >> ~/.bashrc'
+runuser -l $NEW_USER -c 'grep -qxF "export DB_PWD=mysecret" ~/.bashrc && sed -i "s/export DB_PWD=.*/export DB_PWD=mysecret/" ~/.bashrc || echo "export DB_PWD=mysecret" >> ~/.bashrc'
+runuser -l $NEW_USER -c 'grep -qxF "export LOG_DIR=$LOG_DIR" ~/.bashrc && sed -i "s~export LOG_DIR=.*~export LOG_DIR=$LOG_DIR~" ~/.bashrc || echo "export LOG_DIR=$LOG_DIR" >> ~/.bashrc'
 
 # Check if required environment variables are set
 if [-z "$APP_ENV"] || [-z "$DB_USER" ] || [ -z "$DB_PWD" ]; then
@@ -63,13 +63,15 @@ if [-z "$APP_ENV"] || [-z "$DB_USER" ] || [ -z "$DB_PWD" ]; then
 fi
 
 # Change into the unzipped package directory
-cd package || display_error "Failed to change directory"
+cd $LOG_DIR || display_error "Failed to change directory"
 
 # Run NodeJS application with myapp user
-runuser -l $NEW_USER -c "
-npm install || display_error \"Failed to install Node.js dependencies\"
-node server.js &"
+runuser -l $NEW_USER -c "npm install" || display_error "Failed to install Node.js dependencies"
+runuser -l $NEW_USER -c "node server.js &"
 
+# Display Node.js process information and check if it's running on port 3000
+echo "Node.js process information:"
 ps aux | grep node | grep -v grep
 
+echo "Node.js running on port 3000:"
 netstat -ltnp | grep :3000
