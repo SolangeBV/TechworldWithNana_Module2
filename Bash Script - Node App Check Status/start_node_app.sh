@@ -6,28 +6,15 @@ display_error() {
     exit 1
 }
 
-# Install Node.js and NPM and print out versions
-echo "Installing Node.js and NPM..."
-sudo apt update || display_error "Failed to update package list"
-sudo apt install -y nodejs npm || display_error "Failed to install Node.js and NPM"
-node_version=$(node -v)
-npm_version=$(npm -v)
-echo "Node.js version installed: $node_version"
-echo "NPM version installed: $npm_version"
+# Check if the script is being run as root
+if [ "$EUID" -ne 0 ]; then
+    display_error "This script must be run as toor user"
+fi
 
-# Download artifact file
-echo "Downloading artifact file..."
-artifact_url="https://node-envvars-artifact.s3.eu-west-2.amazonaws.com/bootcamp-node-envvars-project-1.0.0.tgz"
-wget -q "$artifact_url" || display_error "Failed to download artifact file"
+NEW_USER=myapp
 
-# Unzip downloaded file
-echo "Unzipping downloaded file..."
-tar -xf bootcamp-node-envvars-project-1.0.0.tgz || display_error "Failed to unzip downloaded file"
-
-# Set environment variables
-export APP_ENV=dev
-export DB_USER=myuser
-export DB_PWD=mysecret
+# Create a new user 'myapp'
+useradd $NEW_USER -m || display_error "Failed to create user myapp"
 
 # Check if log directory parameter is provided
 if [ -n "$1" ]; then
@@ -43,6 +30,33 @@ if [ -n "$1" ]; then
     export LOG_DIR="$(realpath "$log_directory")"
 fi
 
+# Change ownership of application directory to myapp user
+chown $NEW_USER -R $LOG_DIR
+
+# Install Node.js and NPM and print out versions
+echo "Installing Node.js and NPM..."
+sudo apt update || display_error "Failed to update package list"
+sudo apt install -y nodejs npm || display_error "Failed to install Node.js and NPM"
+node_version=$(node -v)
+npm_version=$(npm -v)
+echo "Node.js version installed: $node_version"
+echo "NPM version installed: $npm_version"
+
+# Download artifact file
+echo "Downloading artifact file..."
+artifact_url="https://node-envvars-artifact.s3.eu-west-2.amazonaws.com/bootcamp-node-envvars-project-1.0.0.tgz"
+runuser -l $NEW_USER -c "wget -q \"$artifact_url\" || display_error \"Failed to download artifact file\""
+
+# Unzip downloaded file
+echo "Unzipping downloaded file..."
+runuser -l $NEW_USER -c "tar -xf bootcamp-node-envvars-project-1.0.0.tgz || display_error \"Failed to unzip downloaded file\""
+
+# Set environment variables
+runuser -l $NEW_USER -c "export APP_ENV=dev &&
+export DB_USER=myuser &&
+export DB_PWD=mysecret &&
+export LOG_DIR=$LOG_DIR"
+
 # Check if required environment variables are set
 if [-z "$APP_ENV"] || [-z "$DB_USER" ] || [ -z "$DB_PWD" ]; then
     display_error "Required environment variable(s) not set. Please set APP_ENV, DB_USER, and DB_PWD."
@@ -51,19 +65,11 @@ fi
 # Change into the unzipped package directory
 cd package || display_error "Failed to change directory"
 
-# Run NodeJS application
-echo "Running NodeJS application in background..."
-npm install || display_error "Failed to install Node.js dependencies"
-node server.js &
+# Run NodeJS application with myapp user
+runuser -l $NEW_USER -c "
+npm install || display_error \"Failed to install Node.js dependencies\"
+node server.js &"
 
-sleep 10
+ps aux | grep node | grep -v grep
 
-# Check if application is running
-node_pid=$(pgrep -f "node server.js")
-if [ -n "$node_pid" ]; then
-  echo "NodeJS application started successfully! (PID: $node_pid)"
-  server_port=$(pgrep -oP "Listening on port \K\d+" $LOG_DIR/app.log)
-  echo "Application is listening on port: $server_port"
-else
-  display_error "Failed to start NodeJS application."
-fi
+netstat -ltnp | grep :3000
