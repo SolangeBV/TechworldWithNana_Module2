@@ -5,8 +5,16 @@ current_user="$USER"
 echo "Enter 'm' to sort by memory consumption or 'c' to sort by CPU consumption:"
 read -r choice
 
-echo "Enter the number of processes to display:"
-read -r process_count
+while true; do
+    echo "Enter the number of processes to display:"
+    read -r process_count
+
+    if [[ "$process_count" =~ ^[0-9]+$ ]]; then
+        break  # Exit the loop if a valid number is entered
+    else
+        echo "Invalid input"
+    fi
+done
 
 echo "Processes for user: $current_user"
 
