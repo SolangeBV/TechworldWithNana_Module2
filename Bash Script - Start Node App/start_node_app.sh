@@ -29,6 +29,11 @@ export APP_ENV=dev
 export DB_USER=myuser
 export DB_PWD=mysecret
 
+# Check if required environment variables are set
+if [-z "$APP_ENV"] || [-z "$DB_USER" ] || [ -z "$DB_PWD" ]; then
+    display_error "Required environment variable(s) not set. Please set APP_ENV, DB_USER, and DB_PWD."
+fi
+
 # Change into the unzipped package directory
 cd package || display_error "Failed to change directory"
 
