@@ -65,7 +65,11 @@ fi
 cd $LOG_DIR || display_error "Failed to change directory"
 
 # Run NodeJS application with myapp user (synchronously AND in the package directory, so that the application retrieves the correct files)
-runuser -l $NEW_USER -c "cd package &&
+runuser -l $NEW_USER -c "export APP_ENV=$APP_ENV &&
+                        export DB_USER=$DB_USER &&
+                        export DB_PWD=$DB_PWD &&
+                        export LOG_DIR=$LOG_DIR &&
+                        cd package &&
                         npm install &&
                         node server.js &"
 
